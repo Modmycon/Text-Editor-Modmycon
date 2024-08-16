@@ -6,13 +6,14 @@ import json
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, 
     QTextEdit, QPushButton, QFileDialog, QLabel, QLineEdit, QCheckBox, 
-    QRadioButton, QButtonGroup, QMessageBox, QTabWidget, QComboBox, QToolBar, QDialog, QTabBar
+    QRadioButton, QButtonGroup, QMessageBox, QTabWidget, QComboBox, QToolBar, QDialog, QTabBar, QMenu
 )
 from PySide6.QtCore import Qt, QTimer, QDateTime
 from PySide6.QtGui import QFont, QTextCursor, QTextDocument, QIcon, QAction, QTextCharFormat
 import chardet
 import pythainlp
 from pythainlp.tokenize import word_tokenize
+from googletrans import Translator
 
 class FindReplaceDialog(QDialog):
     def __init__(self, parent=None):
@@ -292,6 +293,32 @@ class TextComparisonTab(QWidget):
 
 
         self.target_text_area.textChanged.connect(self.auto_save) 
+        
+        self.target_text_area.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.target_text_area.customContextMenuRequested.connect(self.show_context_menu)
+
+        self.translator = Translator()
+
+    def show_context_menu(self, pos):
+        cursor = self.target_text_area.textCursor()
+        if cursor.hasSelection():
+            menu = QMenu(self)
+            translate_action = menu.addAction("แปลภาษา")
+            action = menu.exec(self.target_text_area.mapToGlobal(pos))
+            if action == translate_action:
+                self.translate_selected_text()
+
+    def translate_selected_text(self):
+        cursor = self.target_text_area.textCursor()
+        selected_text = cursor.selectedText()
+
+        try:
+            translation = self.translator.translate(selected_text, dest='th')
+            cursor.removeSelectedText()
+            cursor.insertText(translation.text)
+        except Exception as e:
+            QMessageBox.critical(self, "Translation Error", f"An error occurred during translation: {e}")
+
 
     def detect_and_open_file(self, text_area):
         filepath, _ = QFileDialog.getOpenFileName(
@@ -489,7 +516,7 @@ class TextComparisonTab(QWidget):
 class TextComparisonApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Text Editor By Johntaber")
+        self.setWindowTitle("Text Editor By Johntaber Unofficial by Modmycon")
         self.setGeometry(100, 100, 800, 600)
 
         TextComparisonApp.instance = self
